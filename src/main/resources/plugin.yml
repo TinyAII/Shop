@@ -1,0 +1,21 @@
+name: Shop
+version: 1.0.0
+main: nl.tinyaii.shop.ShopPlugin
+api-version: 1.16
+author: TinyAII
+description: 商店系统 - GUI收购出售双页签/分类浏览/手持上架/Economy联动，零依赖
+website: https://github.com/TinyAII
+softdepend: [Economy]
+
+commands:
+  商店:
+    description: 商店主命令
+    usage: /商店 [购买|收购]
+
+permissions:
+  shop.use:
+    description: 使用商店交易
+    default: true
+  shop.admin:
+    description: 管理命令（上架/下架/改价/重载）
+    default: op
