@@ -1,0 +1,53 @@
+# Shop 商店系统 配置
+# 库存说明：官方商店每件商品可设 stock（-1=无限 / 0=售罄 / n=限量）；
+#          世界商店库存=玩家实际挂售数量，天然有限。
+settings:
+  # 分类定义（顺序=主菜单显示顺序；icon=分类图标材质）
+  categories:
+    建筑方块:
+      icon: "BRICKS"
+    食物:
+      icon: "COOKED_BEEF"
+    矿物资源:
+      icon: "DIAMOND"
+    其他:
+      icon: "CHEST"
+  # 卖出税费率（官方收购用；0.05 = 收5%税；0 = 免费）
+  sell-tax-rate: 0.0
+
+# 世界商店（玩家互相交易）
+worldshop:
+  enabled: true
+  # 成交手续费率（向卖家收取，0.05=5%）
+  tax-rate: 0.05
+  # 每人最多同时挂售数量
+  max-listings: 9
+  # 单价上下限
+  min-price: 0.1
+  max-price: 100000
+  # 背包满时购买：deny=拒绝 / drop=掉地上
+  full-inventory: drop
+  # 音效开关
+  sound: true
+
+messages:
+  prefix: "&7[&e商店&7] &r"
+  no-permission: "&c你没有权限这么做。"
+  eco-missing: "&c经济插件（Economy）未安装，商店交易不可用。"
+  buy-success: "&a购买 &e{n}x {item} &a成功，花费 &e{cost} &7{currency}"
+  sell-success: "&a出售 &e{n}x {item} &a成功，获得 &e{gain} &7{currency}&a（已含税）"
+  insufficient-money: "&c余额不足，需要 &e{cost} &7{currency}"
+  not-enough-items: "&c背包里没有足够的 &e{item}&c。"
+  inventory-full-deny: "&c背包已满，无法购买，请先清理背包。"
+  hand-empty: "&c请手持要上架的物品。"
+  listed: "&a商品已上架：&e{item} &7(买&e{buy}&7/卖&e{sell}&7/{category}；0=该方向关闭)"
+  unlisted: "&a商品已下架。"
+  price-updated: "&a价格已更新。"
+  reloaded: "&a配置已重载。"
+  world-listed: "&a已上架世界商店：&e{n}x {item} &7@ &e{price} &7{currency}/个（单号&f#{id}&7）"
+  world-delist: "&a挂售单 &f#{id} &a已下架，剩余物品已退回背包。"
+  world-not-yours: "&c这不是你的挂售单。"
+  world-limit: "&c你的挂售单已达上限（&e{max}&c），先下架一些吧。"
+  world-price-range: "&c单价需在 &e{min} ~ {max} &c之间。"
+  world-sold-out: "&c该商品已售罄。"
+  world-empty-hand: "&c请手持要上架的物品。"
