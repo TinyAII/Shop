@@ -43,7 +43,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 if (!(sender instanceof Player)) { sender.sendMessage("仅玩家可用。"); return true; }
                 if (!sender.hasPermission("shop.use")) { msg.send((Player) sender, "no-permission"); return true; }
                 Player pl = (Player) sender;
-                if (args.length < 3) { pl.sendMessage(Messages.color("&c用法: /商店 上架 <单价> [数量]（手持物品）")); return true; }
+                if (args.length < 3) { pl.sendMessage(Messages.color("&c用法: /商店 上架 <单价> [数量] [金币|点券]（手持物品）")); return true; }
                 return doWorldList(pl, args);
             }
             case "世界": {
@@ -60,7 +60,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                             + " &ex" + l.getStock() + " &7@ &e" + Messages.fmt(l.getUnitPrice())
                             + " &7(下架: /商店 下架 " + l.getId() + ")"));
                 }
-                if (mine.isEmpty()) sender.sendMessage(Messages.color("&7你还没有挂售任何商品。用 /商店 上架 <单价> [数量]"));
+                if (mine.isEmpty()) sender.sendMessage(Messages.color("&7你还没有挂售任何商品。用 /商店 上架 <单价> [数量] [金币|点券]"));
                 return true;
             }
             case "下架": {
@@ -96,7 +96,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "上架": {
-                if (args.length < 4) { p.sendMessage(Messages.color("&c用法: /商店 管理 上架 <买价|0> <卖价|0> [分类] [库存] &7(填0或-表示该方向关闭，可只买或只卖)")); return true; }
+                if (args.length < 4) { p.sendMessage(Messages.color("&c用法: /商店 管理 上架 <买价|0> <卖价|0> [分类] [库存] [币种] &7(币种=金币/点券，默认金币；0=关闭该方向)")); return true; }
                 ItemStack hand = p.getInventory().getItemInMainHand();
                 if (hand.getType().isAir()) { msg.send(p, "hand-empty"); return true; }
                 double buy = parsePrice(args[2]), sell = parsePrice(args[3]);
@@ -104,11 +104,14 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 if (buy == 0 && sell == 0) { p.sendMessage(Messages.color("&c买卖不能同时关闭。")); return true; }
                 String category = args.length >= 5 ? args[4] : "其他";
                 int stock = args.length >= 6 ? parseInt(args[5]) : -1;
-                Product added = plugin.getShopManager().add(hand.clone(), category, buy, sell, stock);
+                String currency = args.length >= 7 ? args[6] : "gold";
+                Product added = plugin.getShopManager().add(hand.clone(), category, buy, sell, stock, currency);
                 msg.send(p, "listed", "{item}", nl.tinyaii.shop.util.MaterialNames.name(hand),
                         "{buy}", Messages.fmt(buy), "{sell}", Messages.fmt(sell), "{category}", category);
                 p.sendMessage(Messages.color("&7库存: &f" + (stock == -1 ? "无限" : String.valueOf(stock))
+                        + " &7| 币种: &f" + (currency.equalsIgnoreCase("points") ? "点券" : "金币")
                         + " &8(改库存: /商店 管理 补货 <序号> <数量>)"));
+                p.sendMessage(Messages.color("&7改币种: 可改回 /商店 管理 改价 <序号> <买> <卖> [金币|点券>"));
                 p.sendMessage(Messages.color("&7商品序号: &f#" + plugin.getShopManager().all()
                         .entrySet().stream().filter(e -> e.getValue() == added)
                         .map(e -> e.getKey()).findFirst().orElse(-1)));
@@ -124,14 +127,20 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "改价": {
-                if (args.length < 5) { p.sendMessage(Messages.color("&c用法: /商店 管理 改价 <序号> <买价|0> <卖价|0> &7(0=关闭该方向)")); return true; }
+                if (args.length < 5) { p.sendMessage(Messages.color("&c用法: /商店 管理 改价 <序号> <买价|0> <卖价|0> [金币|点券] &7(0=关闭该方向)")); return true; }
                 int id = parseInt(args[2]);
                 double buy = parsePrice(args[3]), sell = parsePrice(args[4]);
                 if (buy < 0 || sell < 0 || (buy == 0 && sell == 0)) {
                     p.sendMessage(Messages.color("&c价格无效或买卖同时为0。"));
                     return true;
                 }
-                if (plugin.getShopManager().updatePrice(id, buy, sell)) msg.send(p, "price-updated");
+                if (plugin.getShopManager().updatePrice(id, buy, sell)) {
+                    if (args.length >= 6) {
+                        var prod = plugin.getShopManager().get(id);
+                        if (prod != null) { prod.setCurrency(args[5]); plugin.getShopManager().save(); }
+                    }
+                    msg.send(p, "price-updated");
+                }
                 else p.sendMessage(Messages.color("&c序号不存在。"));
                 return true;
             }
@@ -162,7 +171,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 "&e/商店 收购 &7- 直接进收购页",
                 "&b--- 世界商店（玩家交易）---",
                 "&e/商店 世界 &7- 浏览玩家商品",
-                "&e/商店 上架 <单价> [数量] &7- 手持物品挂售",
+                "&e/商店 上架 <单价> [数量] [金币|点券] &7- 手持物品挂售",
                 "&e/商店 我的 &7- 我的挂售单",
                 "&e/商店 下架 <单号> &7- 收回商品",
                 "&c--- 管理 ---",
@@ -216,6 +225,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         int want = args.length >= 3 ? parseInt(args[2]) : hand.getAmount();
+        String currency = args.length >= 4 ? args[3] : "gold";
 
         int cap = plugin.getConfig().getInt("worldshop.max-listings", 9);
         var mine = plugin.getWorldShopManager().byOwner(p.getUniqueId());
@@ -228,10 +238,13 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
         "&c背包里没有可上架的该物品。（提示：附魔/改名物品需与手持的完全同款）")); return true; }
 
         int id = plugin.getWorldShopManager().list(
-                p.getUniqueId(), p.getName(), hand.clone(), price, taken);
+                p.getUniqueId(), p.getName(), hand.clone(), price, taken, currency);
+        String curName = currency.equalsIgnoreCase("points") ? plugin.getEcoBridge().getPointsName() : msg.currencyName();
         msg.send(p, "world-listed", "{n}", String.valueOf(taken),
                 "{item}", hand.getType().name(),
-                "{price}", Messages.fmt(price), "{currency}", msg.currencyName(), "{id}", String.valueOf(id));
+                "{price}", Messages.fmt(price),
+                "{currency}", curName + (currency.equalsIgnoreCase("points") ? "(点券)" : ""),
+                "{id}", String.valueOf(id));
         return true;
     }
 
