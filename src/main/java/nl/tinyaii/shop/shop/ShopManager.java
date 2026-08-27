@@ -49,7 +49,8 @@ public class ShopManager {
                     String category = catObj == null ? "其他" : String.valueOf(catObj);
                     double buy = toDouble(m.get("buy"));
                     double sell = toDouble(m.get("sell"));
-                    Product product = new Product(stack, category, buy, sell);
+                    String cur = m.get("currency") == null ? "gold" : String.valueOf(m.get("currency"));
+                    Product product = new Product(stack, category, buy, sell, cur);
                     Object stObj = m.get("stock");
                     int stock = -1;
                     if (stObj instanceof Number) stock = ((Number) stObj).intValue();
@@ -108,6 +109,7 @@ public class ShopManager {
                 m.put("category", p.getCategory());
                 m.put("buy", p.getBuyPrice());
                 m.put("sell", p.getSellPrice());
+                m.put("currency", p.getCurrency());
                 m.put("stock", p.getStock());
                 list.add(m);
             }
@@ -132,8 +134,12 @@ public class ShopManager {
     }
 
     public Product add(ItemStack template, String category, double buy, double sell, int stock) {
+        return add(template, category, buy, sell, stock, "gold");
+    }
+
+    public Product add(ItemStack template, String category, double buy, double sell, int stock, String currency) {
         synchronized (products) {
-            Product p = new Product(template, category, buy, sell);
+            Product p = new Product(template, category, buy, sell, currency);
             p.setStock(stock);
             products.put(nextId, p);
             int id = nextId;
