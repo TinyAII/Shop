@@ -39,7 +39,7 @@ public class Messages {
         if (p != null) p.sendMessage(raw(key, repl));
     }
 
-    public String currencyName() { return plugin.getEcoBridge().getCurrencyName(); }
+    public String currencyName() { return plugin.getEcoBridge().getActiveCurrencyName(); }
 
     public static String fmt(double v) {
         if (v == Math.floor(v)) return String.valueOf((long) v);
