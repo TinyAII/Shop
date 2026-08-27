@@ -34,15 +34,27 @@ public class WorldTradeService {
                 return false;
             }
             double cost = Math.round(listing.getUnitPrice() * n * 100.0) / 100.0;
-            if (!eco.has(buyer.getUniqueId(), cost)) {
-                msg.send(buyer, "insufficient-money", "{cost}", Messages.fmt(cost),
-                        "{currency}", msg.currencyName());
-                return false;
+            String curName;
+            boolean pointsMode = listing.isPoints() && eco.isPointsAvailable();
+            curName = pointsMode ? eco.getPointsName() : msg.currencyName();
+            if (pointsMode) {
+                int needPts = (int) Math.ceil(cost);
+                if (eco.getPointsBalance(buyer.getUniqueId()) < needPts) {
+                    msg.send(buyer, "insufficient-money", "{cost}", String.valueOf(needPts),
+                            "{currency}", curName);
+                    return false;
+                }
+                eco.withdrawPoints(buyer.getUniqueId(), needPts);
+                eco.depositPoints(listing.getOwner(), needPts);
+            } else {
+                if (!eco.has(buyer.getUniqueId(), cost)) {
+                    msg.send(buyer, "insufficient-money", "{cost}", Messages.fmt(cost),
+                            "{currency}", msg.currencyName());
+                    return false;
+                }
+                if (!eco.withdraw(buyer.getUniqueId(), cost)) return false;
+                eco.deposit(listing.getOwner(), cost);
             }
-            // 扣款
-            if (!eco.withdraw(buyer.getUniqueId(), cost)) return false;
-            // 卖家收款（Economy 按 UUID 记账，离线同样生效）
-            eco.deposit(listing.getOwner(), cost);
             // 减库存发货；买完最后一件自动下架（不留占位僵尸单）
             listing.setStock(listing.getStock() - n);
             int given = giveItems(buyer, listing, n);
@@ -56,13 +68,13 @@ public class WorldTradeService {
             String sellerName = listing.getOwnerName().isEmpty() ? "玩家" : listing.getOwnerName();
             msg.send(buyer, "buy-success", "{n}", String.valueOf(given),
                     "{item}", nl.tinyaii.shop.util.MaterialNames.coloredName(listing.getTemplate()),
-                    "{cost}", Messages.fmt(cost), "{currency}", msg.currencyName());
+                    "{cost}", Messages.fmt(cost), "{currency}", curName);
             buyer.sendMessage(Messages.color("&7卖家: &f" + sellerName + " &8(货款已转入其钱包)"));
             // 通知在线卖家
             Player seller = org.bukkit.Bukkit.getPlayer(listing.getOwner());
             if (seller != null && !seller.equals(buyer)) {
                 seller.sendMessage(Messages.color("&7[&e世界商店&7] &f" + buyer.getName()
-                        + " &a购买了你的商品 &e" + n + "x&7，货款 &e" + Messages.fmt(cost) + " &7已到账。"));
+                        + " &a购买了你的商品 &e" + n + "x&7，货款 &e" + Messages.fmt(cost) + " " + curName + " &7已到账。"));
                 seller.playSound(seller.getLocation(), Sound.ENTITY_VILLAGER_YES, 1f, 1.2f);
             }
             if (plugin.getConfig().getBoolean("settings.sound", true)) {
