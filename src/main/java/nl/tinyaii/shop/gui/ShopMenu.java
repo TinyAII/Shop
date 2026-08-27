@@ -61,9 +61,17 @@ public class ShopMenu {
         // 底部余额
         EcoBridge eco = plugin.getEcoBridge();
         if (eco.isAvailable()) {
-            inv.setItem(46, MainMenu.named(Material.EMERALD,
-                    "&a余额: &e" + Messages.fmt(eco.getBalance(player.getUniqueId())) + " " + eco.getCurrencyName(),
-                    new ArrayList<>()));
+            String bal = "&a余额: &e" + Messages.fmt(eco.getBalance(player.getUniqueId())) + " " + eco.getActiveCurrencyName();
+            if (eco.isPointsAvailable()) {
+                bal += Messages.color(" &8| &e点券 &f" + eco.getPointsBalance(player.getUniqueId()));
+            }
+            inv.setItem(46, MainMenu.named(Material.EMERALD, bal, new ArrayList<>()));
+        }
+
+        // 统一菜单返回按钮（装了 Menu 才显示）
+        if (plugin.getServer().getPluginManager().getPlugin("Menu") != null) {
+            inv.setItem(48, MainMenu.named(Material.NETHER_STAR, "&a返回主菜单",
+                    new ArrayList<>(Arrays.asList(Messages.color("&7回到统一菜单")))));
         }
 
         // 分类切换按钮
