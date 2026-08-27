@@ -87,7 +87,7 @@ public class WorldShopMenu {
         var eco = plugin.getEcoBridge();
         if (eco.isAvailable()) {
             inv.setItem(47, MainMenu.named(Material.EMERALD,
-                    "&a余额: &e" + Messages.fmt(eco.getBalance(player.getUniqueId())) + " " + eco.getCurrencyName(),
+                    "&a余额: &e" + Messages.fmt(eco.getBalance(player.getUniqueId())) + " " + eco.getActiveCurrencyName(),
                     new ArrayList<>()));
         }
     }
