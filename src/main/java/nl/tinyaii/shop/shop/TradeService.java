@@ -21,12 +21,14 @@ public class TradeService {
         this.plugin = plugin;
     }
 
-    /** 购买 amount 个 */
+    /** 购买 amount 个（支持金币/点券双币结算） */
     public boolean buy(Player p, Product product, int amount) {
         Messages msg = plugin.getMessages();
         var eco = plugin.getEcoBridge();
         if (!eco.isAvailable()) { msg.send(p, "eco-missing"); return false; }
         if (amount <= 0 || product.getBuyPrice() <= 0) return false;
+
+        boolean pointsMode = product.isPoints() && plugin.getEcoBridge().isPointsAvailable();
 
         // 官方商店库存：-1=无限；限量商品卖完即止（防经济通胀）
         amount = product.purchasable(amount);
@@ -36,10 +38,20 @@ public class TradeService {
         }
 
         double cost = round2(product.getBuyPrice() * amount);
-        if (!eco.has(p.getUniqueId(), cost)) {
-            msg.send(p, "insufficient-money", "{cost}", Messages.fmt(cost),
-                    "{currency}", msg.currencyName());
-            return false;
+        String curName = pointsMode ? plugin.getEcoBridge().getPointsName() : msg.currencyName();
+        if (pointsMode) {
+            int needPts = (int) Math.ceil(cost);
+            if (plugin.getEcoBridge().getPointsBalance(p.getUniqueId()) < needPts) {
+                msg.send(p, "insufficient-money", "{cost}", String.valueOf(needPts),
+                        "{currency}", curName);
+                return false;
+            }
+        } else {
+            if (!eco.has(p.getUniqueId(), cost)) {
+                msg.send(p, "insufficient-money", "{cost}", Messages.fmt(cost),
+                        "{currency}", msg.currencyName());
+                return false;
+            }
         }
 
         // 先给货（背包满策略），成功给货量>0 才扣款
@@ -49,7 +61,11 @@ public class TradeService {
             return false;
         }
         double actualCost = round2(product.getBuyPrice() * given);
-        eco.withdraw(p.getUniqueId(), actualCost);
+        if (pointsMode) {
+            plugin.getEcoBridge().withdrawPoints(p.getUniqueId(), (int) Math.ceil(actualCost));
+        } else {
+            eco.withdraw(p.getUniqueId(), actualCost);
+        }
 
         // 扣减官方库存（无限=-1 不动）
         if (product.getStock() != -1) {
@@ -58,7 +74,7 @@ public class TradeService {
 
         msg.send(p, "buy-success", "{n}", String.valueOf(given),
                 "{item}", displayName(product), "{cost}", Messages.fmt(actualCost),
-                "{currency}", msg.currencyName());
+                "{currency}", curName);
         if (plugin.getConfig().getBoolean("settings.sound", true)) {
             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.4f);
         }
