@@ -43,12 +43,13 @@ public class WorldShopManager {
                     ItemStack stack = s.getItemStack("item");
                     if (stack == null) continue;
                     if (stack.getAmount() != 1) { stack.setAmount(1); }
+                    String cur = s.getString("currency", "gold");
                     Listing l = new Listing(Integer.parseInt(key),
                             UUID.fromString(s.getString("owner", "")),
                             s.getString("owner-name", ""),
                             stack,
                             s.getDouble("price", 0),
-                            s.getInt("stock", 0));
+                            s.getInt("stock", 0), cur);
                     listings.put(l.getId(), l);
                     nextId = Math.max(nextId, l.getId() + 1);
                 } catch (Exception e) {
@@ -67,6 +68,7 @@ public class WorldShopManager {
                 yml.set(base + "owner-name", l.getOwnerName());
                 yml.set(base + "item", l.getTemplate());
                 yml.set(base + "price", l.getUnitPrice());
+                yml.set(base + "currency", l.getCurrency());
                 yml.set(base + "stock", l.getStock());
             }
             try {
@@ -80,8 +82,12 @@ public class WorldShopManager {
 
     /** 上架：返回挂售单 id */
     public int list(UUID owner, String ownerName, ItemStack item, double unitPrice, int stock) {
+        return list(owner, ownerName, item, unitPrice, stock, "gold");
+    }
+
+    public int list(UUID owner, String ownerName, ItemStack item, double unitPrice, int stock, String currency) {
         synchronized (listings) {
-            Listing l = new Listing(nextId, owner, ownerName, item, unitPrice, stock);
+            Listing l = new Listing(nextId, owner, ownerName, item, unitPrice, stock, currency);
             listings.put(nextId, l);
             int id = nextId;
             nextId++;
