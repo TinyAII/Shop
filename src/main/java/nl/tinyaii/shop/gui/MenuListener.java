@@ -59,7 +59,12 @@ public class MenuListener implements Listener {
 
         // ---- 世界商店页 ----
         if (holder.getType() == MenuHolder.Type.WORLD) {
-            if (slot == 49) { new MainMenu(plugin, p).open(); return; }
+            if (slot == 48) {   // 返回统一玩家主菜单 /菜单
+            if (plugin.getServer().getPluginManager().getPlugin("Menu") != null) p.performCommand("菜单");
+            else p.closeInventory();
+            return;
+        }
+        if (slot == 49) { new MainMenu(plugin, p).open(); return; }
             if (slot == 45 && holder.getPage() > 0) { new WorldShopMenu(plugin, p, holder.getPage() - 1).open(); return; }
             if (slot == 53 && holder.getPage() < holder.getPages() - 1) { new WorldShopMenu(plugin, p, holder.getPage() + 1).open(); return; }
             if (slot < 45) {
@@ -87,6 +92,11 @@ public class MenuListener implements Listener {
         String mode = holder.getMode();
         String category = holder.getCategory();
 
+        if (slot == 48) {   // 返回统一玩家主菜单 /菜单
+            if (plugin.getServer().getPluginManager().getPlugin("Menu") != null) p.performCommand("菜单");
+            else p.closeInventory();
+            return;
+        }
         if (slot == 49) { new MainMenu(plugin, p).open(); return; }
         if (slot == 45 && holder.getPage() > 0) {
             new ShopMenu(plugin, p, mode, category, holder.getPage() - 1).open(); return;
