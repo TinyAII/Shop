@@ -25,6 +25,8 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        // 双语支持：中/英文子命令归一化（buy→购买 sell→收购 admin→管理...）
+        for (int i = 0; i < args.length; i++) args[i] = nl.tinyaii.shop.command.CommandAliases.normalize(args[i]);
         Messages msg = plugin.getMessages();
 
         if (args.length == 0 || args[0].equals("购买") || args[0].equals("收购")) {
@@ -105,6 +107,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 String category = args.length >= 5 ? args[4] : "其他";
                 int stock = args.length >= 6 ? parseInt(args[5]) : -1;
                 String currency = args.length >= 7 ? args[6] : "gold";
+                currency = currency.equalsIgnoreCase("points") || currency.equalsIgnoreCase("点券") ? "points" : "gold";
                 Product added = plugin.getShopManager().add(hand.clone(), category, buy, sell, stock, currency);
                 msg.send(p, "listed", "{item}", nl.tinyaii.shop.util.MaterialNames.name(hand),
                         "{buy}", Messages.fmt(buy), "{sell}", Messages.fmt(sell), "{category}", category);
@@ -137,7 +140,11 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
                 if (plugin.getShopManager().updatePrice(id, buy, sell)) {
                     if (args.length >= 6) {
                         var prod = plugin.getShopManager().get(id);
-                        if (prod != null) { prod.setCurrency(args[5]); plugin.getShopManager().save(); }
+                        if (prod != null) {
+                            String c = args[5];
+                            prod.setCurrency(c.equalsIgnoreCase("points") || c.equalsIgnoreCase("点券") ? "points" : "gold");
+                            plugin.getShopManager().save();
+                        }
                     }
                     msg.send(p, "price-updated");
                 }
@@ -166,6 +173,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
     private void sendHelp(CommandSender s) {
         String[] lines = {
                 "&6===== Shop 商店系统 =====",
+                "&7中/英文子命令均可（如 /商店 buy = /商店 购买）",
                 "&e/商店 &7- 打开商店主菜单",
                 "&e/商店 购买 &7- 直接进购买页",
                 "&e/商店 收购 &7- 直接进收购页",
@@ -226,6 +234,7 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
         }
         int want = args.length >= 3 ? parseInt(args[2]) : hand.getAmount();
         String currency = args.length >= 4 ? args[3] : "gold";
+        currency = currency.equalsIgnoreCase("points") || currency.equalsIgnoreCase("点券") ? "points" : "gold";
 
         int cap = plugin.getConfig().getInt("worldshop.max-listings", 9);
         var mine = plugin.getWorldShopManager().byOwner(p.getUniqueId());
@@ -275,9 +284,11 @@ public class ShopCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(Arrays.asList("购买", "收购", "世界", "上架", "我的", "下架"));
-            if (sender.hasPermission("shop.admin")) subs.addAll(Arrays.asList("管理", "重载"));
-            for (String s : subs) if (s.startsWith(args[0])) out.add(s);
+            List<String> subs = new ArrayList<>(Arrays.asList(
+                    "购买", "收购", "世界", "上架", "我的", "下架",
+                    "buy", "sell", "world", "list", "mine", "delist"));
+            if (sender.hasPermission("shop.admin")) subs.addAll(Arrays.asList("管理", "重载", "admin", "reload"));
+            for (String s : subs) if (s.toLowerCase().startsWith(args[0].toLowerCase())) out.add(s);
         } else if (args.length == 2 && args[0].equals("管理")) {
             for (String s : Arrays.asList("上架", "下架", "改价", "补货", "列表")) {
                 if (s.startsWith(args[1])) out.add(s);
